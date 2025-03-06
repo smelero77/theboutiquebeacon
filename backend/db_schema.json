@@ -1,0 +1,97 @@
+{
+  "database": {
+    "name": "supabase",
+    "schema": {
+      "users": {
+        "primary_key": "id",
+        "description": "Tabla de usuarios con información básica y credenciales.",
+        "alias": "Usuarios",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único del usuario." },
+          "full_name": { "type": "varchar", "alias": "Nombre Completo", "description": "Nombre completo del usuario." },
+          "email": { "type": "varchar", "constraints": ["unique"], "alias": "Correo Electrónico", "description": "Correo electrónico del usuario." },
+          "created_at": { "type": "timestamp", "alias": "Fecha de Creación", "description": "Fecha de creación del usuario." },
+          "updated_at": { "type": "timestamp", "alias": "Última Actualización", "description": "Última actualización del usuario." }
+        },
+        "relations": {}
+      },
+      "marketplaceaccounts": {
+        "primary_key": "id",
+        "description": "Cuentas de marketplace asociadas a los usuarios.",
+        "alias": "Cuentas de Marketplace",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único de la cuenta de marketplace." },
+          "user_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Usuario", "description": "Referencia al usuario propietario de la cuenta." }
+        },
+        "relations": {
+          "users": { "foreign_column": "id", "referenced_column": "user_id", "relation_description": "Un usuario puede tener varias cuentas de marketplace." }
+        }
+      },
+      "stores": {
+        "primary_key": "id",
+        "description": "Tiendas creadas por los usuarios en los marketplaces.",
+        "alias": "Tiendas",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único de la tienda." },
+          "account_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Cuenta Marketplace", "description": "Referencia a la cuenta de marketplace propietaria de la tienda." }
+        },
+        "relations": {
+          "marketplaceaccounts": { "foreign_column": "id", "referenced_column": "account_id", "relation_description": "Cada tienda pertenece a una cuenta de marketplace." }
+        }
+      },
+      "orders": {
+        "primary_key": "id",
+        "description": "Pedidos generados en las tiendas.",
+        "alias": "Pedidos",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único del pedido." },
+          "store_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Tienda", "description": "Referencia a la tienda donde se realizó el pedido." },
+          "created_at": { "type": "timestamp", "alias": "Fecha de Creación", "description": "Fecha en que se generó el pedido." }
+        },
+        "relations": {
+          "stores": { "foreign_column": "id", "referenced_column": "store_id", "relation_description": "Cada pedido está asociado a una tienda específica." }
+        }
+      },
+      "reviews": {
+        "primary_key": "id",
+        "description": "Reseñas realizadas por los clientes sobre los productos.",
+        "alias": "Reseñas",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único de la reseña." },
+          "product_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Producto", "description": "Referencia al producto evaluado." },
+          "rating": { "type": "integer", "description": "Calificación dada por el usuario (1-5)." },
+          "comment": { "type": "text", "description": "Comentario dejado por el usuario." }
+        },
+        "relations": {
+          "products": { "foreign_column": "id", "referenced_column": "product_id", "relation_description": "Cada reseña pertenece a un producto." }
+        }
+      },
+      "synclogs": {
+        "primary_key": "id",
+        "description": "Registros de sincronización de datos.",
+        "alias": "Logs de Sincronización",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único del registro de sincronización." },
+          "store_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Tienda", "description": "Referencia a la tienda donde se realizó la sincronización." },
+          "synced_at": { "type": "timestamp", "description": "Fecha y hora en que ocurrió la sincronización." }
+        },
+        "relations": {
+          "stores": { "foreign_column": "id", "referenced_column": "store_id", "relation_description": "Cada log pertenece a una tienda." }
+        }
+      },
+      "syncstatus": {
+        "primary_key": "id",
+        "description": "Estado de la sincronización de datos.",
+        "alias": "Estado de Sincronización",
+        "columns": {
+          "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único del estado de sincronización." },
+          "store_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Tienda", "description": "Referencia a la tienda donde se realiza la sincronización." },
+          "last_sync": { "type": "timestamp", "description": "Fecha y hora de la última sincronización." }
+        },
+        "relations": {
+          "stores": { "foreign_column": "id", "referenced_column": "store_id", "relation_description": "Cada estado de sincronización pertenece a una tienda." }
+        }
+      }
+    }
+  }
+}

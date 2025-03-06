@@ -49,29 +49,6 @@ function EtsyDataOverview({ etsyData }) {
             }}
           />
         </Grid>
-
-        {/* Products List */}
-        <Grid item xs={12} md={6}>
-          <MDBox p={2} borderRadius="lg" boxShadow="sm" bgColor="white">
-            <MDTypography variant="h6" mb={2}>
-              Products
-            </MDTypography>
-            {etsyData.products.map((product) => (
-              <MDBox
-                key={product.id}
-                p={1}
-                mb={1}
-                borderRadius="lg"
-                boxShadow="xs"
-                bgColor="grey.100"
-              >
-                <MDTypography variant="button">
-                  {product.title} - ${product.price}
-                </MDTypography>
-              </MDBox>
-            ))}
-          </MDBox>
-        </Grid>
       </Grid>
     </MDBox>
   );

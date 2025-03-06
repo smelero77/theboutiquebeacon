@@ -14,20 +14,13 @@ Coded by www.creative-tim.com
 */
 
 import React from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import App from "App";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
 
-// Material Dashboard 2 React Context Provider
-import { MaterialUIControllerProvider } from "context";
-
-const container = document.getElementById("app");
-const root = createRoot(container);
-
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <BrowserRouter>
-    <MaterialUIControllerProvider>
-      <App />
-    </MaterialUIControllerProvider>
-  </BrowserRouter>
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );

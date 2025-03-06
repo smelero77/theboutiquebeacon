@@ -1,119 +1,135 @@
-import { useState } from "react";
+import React from "react";
+import { Form, Input, Button, Typography, message } from "antd";
+import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
-import Card from "@mui/material/Card";
-import MDBox from "components/MDBox";
-import MDTypography from "components/MDTypography";
-import MDInput from "components/MDInput";
-import MDButton from "components/MDButton";
-import BasicLayout from "layouts/authentication/components/BasicLayout";
-import bgImage from "assets/images/bg-sign-up-basic.jpeg";
+import { supabase } from "../../../supabaseClient.js";
 
-// Import the Supabase instance using the correct relative path
-import { supabase } from "../../../supabaseClient";
+const { Title } = Typography;
 
 function SignUp() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [form] = Form.useForm();
 
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    setError(null);
+  const onFinish = async (values) => {
+    try {
+      // Llamar a la función RPC para verificar si el usuario ya existe
+      const { data: userExists, error: rpcError } = await supabase.rpc("check_user_exists", {
+        email_input: values.email,
+      });
 
-    // Call Supabase to sign up the user
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
-    });
+      if (rpcError) throw rpcError;
 
-    if (error) {
-      setError(error.message);
-      return;
-    }
+      if (userExists) {
+        message.error("El correo electrónico ya está registrado. Intenta con otro.");
+        return;
+      }
 
-    // If no session is created, it means email confirmation is required
-    if (!data.session) {
-      setError(
-        "Registration successful. Please check your email (including spam folder) to confirm your account."
-      );
-      // Optionally, you can keep the user on this page or redirect them to a dedicated verification page.
-    } else {
-      // If a session is created (i.e., no email confirmation required), redirect to the dashboard.
-      navigate("/dashboard");
+      // Si el usuario no existe, proceder con el registro
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.fullName,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      message.success("Registro exitoso. Por favor verifica tu correo electrónico.");
+      navigate("/authentication/sign-in");
+    } catch (error) {
+      message.error(error.message || "Ocurrió un error inesperado. Inténtalo de nuevo.");
     }
   };
 
   return (
-    <BasicLayout image={bgImage}>
-      <Card>
-        <MDBox pt={3} pb={4} px={3}>
-          <MDTypography variant="h4" fontWeight="medium" textAlign="center">
-            Sign Up
-          </MDTypography>
-          <MDBox component="form" role="form" onSubmit={handleSignUp} mt={3}>
-            <MDBox mb={2}>
-              <MDInput
-                type="text"
-                label="Full Name"
-                fullWidth
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </MDBox>
-            <MDBox mb={2}>
-              <MDInput
-                type="email"
-                label="Email"
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </MDBox>
-            <MDBox mb={2}>
-              <MDInput
-                type="password"
-                label="Password"
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </MDBox>
-            {error && (
-              <MDBox mb={2}>
-                <MDTypography variant="caption" color="error">
-                  {error}
-                </MDTypography>
-              </MDBox>
-            )}
-            <MDBox mt={4} mb={1}>
-              <MDButton variant="gradient" color="info" fullWidth type="submit">
-                Sign Up
-              </MDButton>
-            </MDBox>
-            <MDBox mt={3} textAlign="center">
-              <MDTypography variant="button" color="text">
-                Already have an account?{" "}
-                <MDTypography
-                  component={Link}
-                  to="/authentication/sign-in"
-                  variant="button"
-                  color="info"
-                  fontWeight="medium"
-                  textGradient
-                >
-                  Sign In
-                </MDTypography>
-              </MDTypography>
-            </MDBox>
-          </MDBox>
-        </MDBox>
-      </Card>
-    </BasicLayout>
+    <div style={{ padding: "24px" }}>
+      <Title level={2} style={{ textAlign: "center", marginBottom: "32px" }}>
+        Registro
+      </Title>
+      <Form form={form} name="sign-up" onFinish={onFinish} layout="vertical">
+        <Form.Item
+          name="fullName"
+          rules={[
+            {
+              required: true,
+              message: "Por favor ingrese su nombre completo",
+            },
+          ]}
+        >
+          <Input prefix={<UserOutlined />} placeholder="Nombre completo" size="large" />
+        </Form.Item>
+
+        <Form.Item
+          name="email"
+          rules={[
+            {
+              required: true,
+              message: "Por favor ingrese su correo electrónico",
+            },
+            {
+              type: "email",
+              message: "Por favor ingrese un correo electrónico válido",
+            },
+          ]}
+        >
+          <Input prefix={<MailOutlined />} placeholder="Correo electrónico" size="large" />
+        </Form.Item>
+
+        <Form.Item
+          name="password"
+          rules={[
+            {
+              required: true,
+              message: "Por favor ingrese su contraseña",
+            },
+            {
+              min: 6,
+              message: "La contraseña debe tener al menos 6 caracteres",
+            },
+          ]}
+        >
+          <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" size="large" />
+        </Form.Item>
+
+        <Form.Item
+          name="confirmPassword"
+          dependencies={["password"]}
+          rules={[
+            {
+              required: true,
+              message: "Por favor confirme su contraseña",
+            },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue("password") === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error("Las contraseñas no coinciden"));
+              },
+            }),
+          ]}
+        >
+          <Input.Password
+            prefix={<LockOutlined />}
+            placeholder="Confirmar contraseña"
+            size="large"
+          />
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" block size="large">
+            Registrarse
+          </Button>
+        </Form.Item>
+
+        <div style={{ textAlign: "center" }}>
+          ¿Ya tienes una cuenta? <Link to="/authentication/sign-in">Inicia sesión</Link>
+        </div>
+      </Form>
+    </div>
   );
 }
 

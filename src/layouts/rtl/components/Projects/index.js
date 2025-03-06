@@ -13,88 +13,87 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import { useState } from "react";
+import React from "react";
+import { Card, Typography, Table, Dropdown, Menu } from "antd";
+import { MoreOutlined } from "@ant-design/icons";
 
-// @mui material components
-import Card from "@mui/material/Card";
-import Icon from "@mui/material/Icon";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-
-// Material Dashboard 2 React components
-import MDBox from "components/MDBox";
-import MDTypography from "components/MDTypography";
-import DataTable from "examples/Tables/DataTable";
-
-// Data
-import data from "layouts/rtl/components/Projects/data";
+const { Title } = Typography;
 
 function Projects() {
-  const { columns, rows } = data();
-  const [menu, setMenu] = useState(null);
+  const columns = [
+    {
+      title: "Project",
+      dataIndex: "project",
+      key: "project",
+    },
+    {
+      title: "Budget",
+      dataIndex: "budget",
+      key: "budget",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+    },
+    {
+      title: "Completion",
+      dataIndex: "completion",
+      key: "completion",
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: () => (
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item key="1">Edit</Menu.Item>
+              <Menu.Item key="2">Delete</Menu.Item>
+            </Menu>
+          }
+        >
+          <MoreOutlined style={{ fontSize: "20px" }} />
+        </Dropdown>
+      ),
+    },
+  ];
 
-  const openMenu = ({ currentTarget }) => setMenu(currentTarget);
-  const closeMenu = () => setMenu(null);
-
-  const renderMenu = (
-    <Menu
-      id="simple-menu"
-      anchorEl={menu}
-      anchorOrigin={{
-        vertical: "top",
-        horizontal: "left",
-      }}
-      transformOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      open={Boolean(menu)}
-      onClose={closeMenu}
-    >
-      <MenuItem onClick={closeMenu}>عمل</MenuItem>
-      <MenuItem onClick={closeMenu}>عمل آخر</MenuItem>
-      <MenuItem onClick={closeMenu}>شيء آخر هنا</MenuItem>
-    </Menu>
-  );
+  const data = [
+    {
+      key: "1",
+      project: "Material XD Version",
+      budget: "$14,000",
+      status: "Completed",
+      completion: "60%",
+    },
+    {
+      key: "2",
+      project: "Add Progress Track",
+      budget: "$3,000",
+      status: "In Progress",
+      completion: "30%",
+    },
+    {
+      key: "3",
+      project: "Fix Platform Errors",
+      budget: "Not set",
+      status: "Completed",
+      completion: "100%",
+    },
+    {
+      key: "4",
+      project: "Launch our Mobile App",
+      budget: "$32,000",
+      status: "In Progress",
+      completion: "45%",
+    },
+  ];
 
   return (
     <Card>
-      <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
-        <MDBox>
-          <MDTypography variant="h6" gutterBottom>
-            المشاريع
-          </MDTypography>
-          <MDBox display="flex" alignItems="center" lineHeight={0}>
-            <Icon
-              sx={{
-                fontWeight: "bold",
-                color: ({ palette: { info } }) => info.main,
-                mt: -0.5,
-              }}
-            >
-              done
-            </Icon>
-            <MDTypography variant="button" fontWeight="regular" color="text">
-              &nbsp;<strong>30 انتهى</strong> هذا الشهر
-            </MDTypography>
-          </MDBox>
-        </MDBox>
-        <MDBox color="text" px={2}>
-          <Icon sx={{ cursor: "pointer", fontWeight: "bold" }} fontSize="small" onClick={openMenu}>
-            more_vert
-          </Icon>
-        </MDBox>
-        {renderMenu}
-      </MDBox>
-      <MDBox>
-        <DataTable
-          table={{ columns, rows }}
-          showTotalEntries={false}
-          isSorted={false}
-          noEndBorder
-          entriesPerPage={false}
-        />
-      </MDBox>
+      <Title level={4}>Projects</Title>
+      <Table columns={columns} dataSource={data} />
     </Card>
   );
 }

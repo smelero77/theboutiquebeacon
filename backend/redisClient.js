@@ -1,24 +1,28 @@
 // backend/redisClient.js
-const redis = require("redis");
+import { createClient } from "redis";
+import dotenv from "dotenv";
 
-// Lee tu URL de Upstash (o local) desde variables de entorno
-// (Asegúrate de tener UPSTASH_REDIS_URL en tu .env, con la URL completa)
-const redisClient = redis.createClient({
-  url: process.env.UPSTASH_REDIS_URL,
+dotenv.config(); // Carga las variables de .env
+
+console.log(">> [redisClient.js] Leyendo REDIS_URL =", process.env.REDIS_URL);
+
+
+const { REDIS_URL } = process.env;
+
+const redisClient = createClient({
+  url: REDIS_URL,
+  socket: {
+    tls: true,
+    rejectUnauthorized: false,
+  },
 });
 
-// Manejo de eventos
 redisClient.on("error", (err) => {
   console.error("Redis Client Error:", err);
 });
 
-redisClient.on("connect", () => {
-  console.log("Connected to Redis");
-});
+// Top-level await en ESM
+await redisClient.connect();
+console.log("Conectado a Redis en Upstash");
 
-// Conectar
-redisClient.connect().catch((err) => {
-  console.error("Error connecting Redis:", err);
-});
-
-module.exports = redisClient;
+export default redisClient;

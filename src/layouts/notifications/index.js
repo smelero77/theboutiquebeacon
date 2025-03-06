@@ -14,181 +14,129 @@ Coded by www.creative-tim.com
 */
 
 import { useState } from "react";
+import { Grid, Card, Typography, Alert, Button, notification } from "antd";
+import {
+  CheckCircleOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 
-// @mui material components
-import Grid from "@mui/material/Grid";
-import Card from "@mui/material/Card";
+// Layout components
+import DashboardLayout from "components/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "components/Navbars/DashboardNavbar";
+import Footer from "components/Footer";
 
-// Material Dashboard 2 React components
-import MDBox from "components/MDBox";
-import MDTypography from "components/MDTypography";
-import MDAlert from "components/MDAlert";
-import MDButton from "components/MDButton";
-import MDSnackbar from "components/MDSnackbar";
-
-// Material Dashboard 2 React example components
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import Footer from "examples/Footer";
+const { Title, Text } = Typography;
 
 function Notifications() {
-  const [successSB, setSuccessSB] = useState(false);
-  const [infoSB, setInfoSB] = useState(false);
-  const [warningSB, setWarningSB] = useState(false);
-  const [errorSB, setErrorSB] = useState(false);
+  const [notificationApi, contextHolder] = notification.useNotification();
 
-  const openSuccessSB = () => setSuccessSB(true);
-  const closeSuccessSB = () => setSuccessSB(false);
-  const openInfoSB = () => setInfoSB(true);
-  const closeInfoSB = () => setInfoSB(false);
-  const openWarningSB = () => setWarningSB(true);
-  const closeWarningSB = () => setWarningSB(false);
-  const openErrorSB = () => setErrorSB(true);
-  const closeErrorSB = () => setErrorSB(false);
+  const showNotification = (type) => {
+    notificationApi[type]({
+      message: "Notificación",
+      description: "Esta es una notificación de ejemplo",
+      placement: "topRight",
+    });
+  };
 
-  const alertContent = (name) => (
-    <MDTypography variant="body2" color="white">
-      A simple {name} alert with{" "}
-      <MDTypography component="a" href="#" variant="body2" fontWeight="medium" color="white">
-        an example link
-      </MDTypography>
-      . Give it a click if you like.
-    </MDTypography>
-  );
-
-  const renderSuccessSB = (
-    <MDSnackbar
-      color="success"
-      icon="check"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={successSB}
-      onClose={closeSuccessSB}
-      close={closeSuccessSB}
-      bgWhite
-    />
-  );
-
-  const renderInfoSB = (
-    <MDSnackbar
-      icon="notifications"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={infoSB}
-      onClose={closeInfoSB}
-      close={closeInfoSB}
-    />
-  );
-
-  const renderWarningSB = (
-    <MDSnackbar
-      color="warning"
-      icon="star"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={warningSB}
-      onClose={closeWarningSB}
-      close={closeWarningSB}
-      bgWhite
-    />
-  );
-
-  const renderErrorSB = (
-    <MDSnackbar
-      color="error"
-      icon="warning"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={errorSB}
-      onClose={closeErrorSB}
-      close={closeErrorSB}
-      bgWhite
-    />
-  );
+  const alertContent = (type) => {
+    switch (type) {
+      case "primary":
+        return "Esta es una alerta primaria";
+      case "secondary":
+        return "Esta es una alerta secundaria";
+      case "success":
+        return "Esta es una alerta de éxito";
+      case "error":
+        return "Esta es una alerta de error";
+      case "warning":
+        return "Esta es una alerta de advertencia";
+      case "info":
+        return "Esta es una alerta informativa";
+      case "light":
+        return "Esta es una alerta clara";
+      case "dark":
+        return "Esta es una alerta oscura";
+      default:
+        return "Esta es una alerta";
+    }
+  };
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox mt={6} mb={3}>
-        <Grid container spacing={3} justifyContent="center">
-          <Grid item xs={12} lg={8}>
+      {contextHolder}
+      <div style={{ padding: "24px" }}>
+        <Grid gutter={[24, 24]}>
+          <Grid.Item xs={24} lg={8}>
             <Card>
-              <MDBox p={2}>
-                <MDTypography variant="h5">Alerts</MDTypography>
-              </MDBox>
-              <MDBox pt={2} px={2}>
-                <MDAlert color="primary" dismissible>
-                  {alertContent("primary")}
-                </MDAlert>
-                <MDAlert color="secondary" dismissible>
-                  {alertContent("secondary")}
-                </MDAlert>
-                <MDAlert color="success" dismissible>
-                  {alertContent("success")}
-                </MDAlert>
-                <MDAlert color="error" dismissible>
-                  {alertContent("error")}
-                </MDAlert>
-                <MDAlert color="warning" dismissible>
-                  {alertContent("warning")}
-                </MDAlert>
-                <MDAlert color="info" dismissible>
-                  {alertContent("info")}
-                </MDAlert>
-                <MDAlert color="light" dismissible>
-                  {alertContent("light")}
-                </MDAlert>
-                <MDAlert color="dark" dismissible>
-                  {alertContent("dark")}
-                </MDAlert>
-              </MDBox>
+              <div style={{ padding: "1rem" }}>
+                <Title level={5}>Notificaciones</Title>
+              </div>
+              <div style={{ padding: "1rem" }}>
+                <Button onClick={() => showNotification("success")}>Success</Button>
+                <Button onClick={() => showNotification("info")}>Info</Button>
+                <Button onClick={() => showNotification("warning")}>Warning</Button>
+                <Button onClick={() => showNotification("error")}>Error</Button>
+              </div>
             </Card>
-          </Grid>
+          </Grid.Item>
 
-          <Grid item xs={12} lg={8}>
+          <Grid.Item xs={24} lg={16}>
             <Card>
-              <MDBox p={2} lineHeight={0}>
-                <MDTypography variant="h5">Notifications</MDTypography>
-                <MDTypography variant="button" color="text" fontWeight="regular">
-                  Notifications on this page use Toasts from Bootstrap. Read more details here.
-                </MDTypography>
-              </MDBox>
-              <MDBox p={2}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="success" onClick={openSuccessSB} fullWidth>
-                      success notification
-                    </MDButton>
-                    {renderSuccessSB}
-                  </Grid>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="info" onClick={openInfoSB} fullWidth>
-                      info notification
-                    </MDButton>
-                    {renderInfoSB}
-                  </Grid>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="warning" onClick={openWarningSB} fullWidth>
-                      warning notification
-                    </MDButton>
-                    {renderWarningSB}
-                  </Grid>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="error" onClick={openErrorSB} fullWidth>
-                      error notification
-                    </MDButton>
-                    {renderErrorSB}
-                  </Grid>
-                </Grid>
-              </MDBox>
+              <div style={{ padding: "1rem" }}>
+                <Title level={5}>Alertas</Title>
+              </div>
+              <div style={{ padding: "1rem" }}>
+                <Alert message={alertContent("primary")} type="info" closable />
+                <Alert
+                  message={alertContent("secondary")}
+                  type="default"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <Alert
+                  message={alertContent("success")}
+                  type="success"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <Alert
+                  message={alertContent("error")}
+                  type="error"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <Alert
+                  message={alertContent("warning")}
+                  type="warning"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <Alert
+                  message={alertContent("info")}
+                  type="info"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <Alert
+                  message={alertContent("light")}
+                  type="default"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <Alert
+                  message={alertContent("dark")}
+                  type="default"
+                  closable
+                  style={{ marginTop: "0.5rem" }}
+                />
+              </div>
             </Card>
-          </Grid>
+          </Grid.Item>
         </Grid>
-      </MDBox>
+      </div>
       <Footer />
     </DashboardLayout>
   );

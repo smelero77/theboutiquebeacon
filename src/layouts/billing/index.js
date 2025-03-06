@@ -1,86 +1,130 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
+import { useState } from "react";
+import { Card, Row, Col, Typography, Button, Space } from "antd";
+import { CreditCardOutlined, FileTextOutlined, HistoryOutlined } from "@ant-design/icons";
 
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
+// Layout components
+import DashboardLayout from "components/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "components/Navbars/DashboardNavbar";
+import Footer from "components/Footer";
 
-Coded by www.creative-tim.com
+// Billing components
+import PaymentMethod from "components/Billing/PaymentMethod";
+import Invoices from "components/Billing/Invoices";
+import BillingInformation from "components/Billing/BillingInformation";
+import Transactions from "components/Billing/Transactions";
 
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-// @mui material components
-import Grid from "@mui/material/Grid";
-
-// Material Dashboard 2 React components
-import MDBox from "components/MDBox";
-
-// Material Dashboard 2 React examples
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import Footer from "examples/Footer";
-import MasterCard from "examples/Cards/MasterCard";
-import DefaultInfoCard from "examples/Cards/InfoCards/DefaultInfoCard";
-
-// Billing page components
-import PaymentMethod from "layouts/billing/components/PaymentMethod";
-import Invoices from "layouts/billing/components/Invoices";
-import BillingInformation from "layouts/billing/components/BillingInformation";
-import Transactions from "layouts/billing/components/Transactions";
+const { Title, Text } = Typography;
 
 function Billing() {
+  const [activeTab, setActiveTab] = useState("payment-method");
+  const [currentPlan, setCurrentPlan] = useState("basic");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "payment-method":
+        return <PaymentMethod />;
+      case "invoices":
+        return <Invoices />;
+      case "billing-information":
+        return <BillingInformation />;
+      case "transactions":
+        return <Transactions />;
+      default:
+        return <PaymentMethod />;
+    }
+  };
+
   return (
     <DashboardLayout>
-      <DashboardNavbar absolute isMini />
-      <MDBox mt={8}>
-        <MDBox mb={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} lg={8}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} xl={6}>
-                  <MasterCard number={4562112245947852} holder="jack peterson" expires="11/22" />
-                </Grid>
-                <Grid item xs={12} md={6} xl={3}>
-                  <DefaultInfoCard
-                    icon="account_balance"
-                    title="salary"
-                    description="Belong Interactive"
-                    value="+$2000"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6} xl={3}>
-                  <DefaultInfoCard
-                    icon="paypal"
-                    title="paypal"
-                    description="Freelance Payment"
-                    value="$455.00"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <PaymentMethod />
-                </Grid>
-              </Grid>
-            </Grid>
-            <Grid item xs={12} lg={4}>
-              <Invoices />
-            </Grid>
-          </Grid>
-        </MDBox>
-        <MDBox mb={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={7}>
-              <BillingInformation />
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <Transactions />
-            </Grid>
-          </Grid>
-        </MDBox>
-      </MDBox>
+      <DashboardNavbar />
+      <div style={{ padding: "2rem" }}>
+        <Title level={2}>Facturación</Title>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} md={8}>
+            <Card title="Plan Básico">
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Text>Características básicas</Text>
+                <Text>Hasta 5 usuarios</Text>
+                <Text>10GB de almacenamiento</Text>
+                <Text>Soporte por email</Text>
+                <Button type="primary" block>
+                  Seleccionar Plan
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card title="Plan Pro">
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Text>Características avanzadas</Text>
+                <Text>Hasta 20 usuarios</Text>
+                <Text>50GB de almacenamiento</Text>
+                <Text>Soporte prioritario</Text>
+                <Button type="primary" block>
+                  Seleccionar Plan
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card title="Plan Enterprise">
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Text>Características empresariales</Text>
+                <Text>Usuarios ilimitados</Text>
+                <Text>Almacenamiento ilimitado</Text>
+                <Text>Soporte 24/7</Text>
+                <Button type="primary" block>
+                  Seleccionar Plan
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} lg={8}>
+            <Card>
+              <Title level={4}>Facturación</Title>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Button
+                  type={activeTab === "payment-method" ? "primary" : "default"}
+                  icon={<CreditCardOutlined />}
+                  block
+                  onClick={() => setActiveTab("payment-method")}
+                >
+                  Método de Pago
+                </Button>
+                <Button
+                  type={activeTab === "invoices" ? "primary" : "default"}
+                  icon={<FileTextOutlined />}
+                  block
+                  onClick={() => setActiveTab("invoices")}
+                >
+                  Facturas
+                </Button>
+                <Button
+                  type={activeTab === "billing-information" ? "primary" : "default"}
+                  icon={<CreditCardOutlined />}
+                  block
+                  onClick={() => setActiveTab("billing-information")}
+                >
+                  Información de Facturación
+                </Button>
+                <Button
+                  type={activeTab === "transactions" ? "primary" : "default"}
+                  icon={<HistoryOutlined />}
+                  block
+                  onClick={() => setActiveTab("transactions")}
+                >
+                  Transacciones
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} lg={16}>
+            <Card>{renderContent()}</Card>
+          </Col>
+        </Row>
+      </div>
       <Footer />
     </DashboardLayout>
   );

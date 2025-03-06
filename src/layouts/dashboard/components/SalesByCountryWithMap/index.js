@@ -10,7 +10,9 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Card,
 } from "@mui/material";
+import { Icon } from "@mui/material";
 
 // Material Dashboard 2 React
 import MDBox from "components/MDBox";
@@ -54,72 +56,95 @@ function SalesByCountryWithMap({ title, subtitle, data, mapConfig }) {
   };
 
   return (
-    <MDBox mt={4}>
-      <MDBox mb={2}>
-        <MDTypography variant="h5" fontWeight="medium">
-          {title || "Sales by Country"}
-        </MDTypography>
-        <MDTypography variant="button" color="text">
-          {subtitle || "Check the sales, value and bounce rate by country."}
-        </MDTypography>
+    <Card>
+      <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+        <MDBox>
+          <MDTypography variant="h6" gutterBottom>
+            {title}
+          </MDTypography>
+          <MDBox display="flex" alignItems="center" lineHeight={0}>
+            <Icon
+              sx={{ fontWeight: "bold", color: ({ palette: { info } }) => info.main, mt: -0.5 }}
+            >
+              public
+            </Icon>
+            <MDTypography variant="button" fontWeight="regular" color="text">
+              {subtitle}
+            </MDTypography>
+          </MDBox>
+        </MDBox>
       </MDBox>
-
-      <Grid container spacing={3}>
-        {/* Tabla */}
-        <Grid item xs={12} md={6}>
-          <TableContainer component={Paper} sx={{ overflow: "auto" }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>
-                    <strong>Country</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Sales</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Value</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Bounce</strong>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {tableData.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{row.country}</TableCell>
-                    <TableCell>{row.sales}</TableCell>
-                    <TableCell>{row.value}</TableCell>
-                    <TableCell>{row.bounce}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Grid>
-
-        {/* Mapa */}
-        <Grid item xs={12} md={6}>
-          <MDBox
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            sx={{ height: "100%", borderRadius: "8px", overflow: "hidden" }}
-          >
+      <MDBox>
+        <Grid container>
+          <Grid item xs={12} md={7} lg={7}>
             <VectorMap
+              map={worldMerc}
+              zoomOnScroll={false}
+              zoomButtons={false}
+              markersSelectable={false}
+              backgroundColor="transparent"
+              markers={mapConfig?.markers || []}
+              markerStyle={{
+                initial: {
+                  fill: "#1A73E8",
+                  stroke: "#1A73E8",
+                  "stroke-width": 1,
+                  r: 5,
+                },
+              }}
+              onRegionTipShow={() => false}
+              onMarkerTipShow={() => false}
               containerStyle={{
                 width: "100%",
-                height: "400px",
+                height: "100%",
               }}
-              containerClassName="jvectormap-container"
-              {...defaultMapConfig}
-              {...mapConfig} // si deseas sobrescribir
+              regionStyle={{
+                initial: {
+                  fill: "#dee2e7",
+                  "fill-opacity": 1,
+                  stroke: "none",
+                  "stroke-width": 0,
+                  "stroke-opacity": 0,
+                },
+              }}
             />
-          </MDBox>
+          </Grid>
+          <Grid item xs={12} md={5} lg={5}>
+            <MDBox p={3}>
+              {tableData.map(({ country, sales, value, bounce }, index) => (
+                <MDBox
+                  key={country}
+                  component="li"
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  py={1}
+                  pr={1}
+                >
+                  <MDBox display="flex" alignItems="center">
+                    <MDBox mr={2}>
+                      <MDTypography variant="button" fontWeight="medium" color="text">
+                        {country}
+                      </MDTypography>
+                    </MDBox>
+                  </MDBox>
+                  <MDBox display="flex" alignItems="center">
+                    <MDBox mr={2}>
+                      <MDTypography variant="button" fontWeight="medium">
+                        {sales}
+                      </MDTypography>
+                    </MDBox>
+                    <MDTypography variant="button" fontWeight="medium">
+                      {value}
+                    </MDTypography>
+                  </MDBox>
+                </MDBox>
+              ))}
+            </MDBox>
+          </Grid>
         </Grid>
-      </Grid>
-    </MDBox>
+      </MDBox>
+    </Card>
   );
 }
 

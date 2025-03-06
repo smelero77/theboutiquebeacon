@@ -2,7 +2,11 @@
   "compilerOptions": {
     "baseUrl": "src",
     "paths": {
-      "*": ["public/src/*"]
+      "components/*": ["components/*"],
+      "layouts/*": ["layouts/*"],
+      "context/*": ["context/*"],
+      "antd/*": ["node_modules/antd/*"]
     }
-  }
+  },
+  "include": ["src"]
 }

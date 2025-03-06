@@ -1,16 +1,26 @@
-// backend/services/etsyService.js (CommonJS)
+// backend/services/etsyService.js
+// ----------------------------------------------------------------------
+// Módulo que:
+//  1) Usa un mockReceiptsData con 4 recibos completos.
+//  2) Sincroniza pedidos con Supabase (en modo mock o API real).
+//  3) Devuelve un objeto con { rawData, stats } para que tu etsyRoutes.js
+//     siga usando transformToOldShape(...) y aggregateSalesByDay(...).
+// ----------------------------------------------------------------------
 
-// Requiere redisClient si vas a usar Redis
-const redisClient = require("../redisClient.js");
+import axios from "axios";
+import dotenv from "dotenv";
+import redisClient from "../redisClient.js";
+import supabase from "../supabaseClient.js";
 
-const cachedData = await redisClient.get("algun_key"); // Debería funcionar
+dotenv.config();
 
+// Clave y TTL para la caché en Redis
+const CACHE_KEY = "etsy_orders";
+const CACHE_TTL = 1800; // 30 min
 
-// TTL para la caché
-const CACHE_KEY = "etsy_data";
-const CACHE_TTL = 1800;
-
-// Tu mock
+// ======================================================================
+// 1. Mock completo (4 recibos) con todos los campos
+// ======================================================================
 const mockReceiptsData = {
   count: 4,
   results: [
@@ -491,126 +501,247 @@ const mockReceiptsData = {
   ],
 };
 
-/**
- * fetchEtsyReceiptsFromAPI
- * (Comentado o desactivado si aún no tienes acceso real)
- */
-// const axios = require("axios");
-// async function fetchEtsyReceiptsFromAPI(shopId, params, token) {
-//   try {
-//     const response = await axios.get(
-//       `https://openapi.etsy.com/v3/application/shops/${shopId}/receipts`,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`, // OAuth2
-//           // "x-api-key": "TU_API_KEY", // si usas api_key
-//         },
-//         params,
-//       }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error fetching receipts from Etsy:", error);
-//     throw error;
-//   }
-// }
-
-/**
- * fetchEtsyReceipts
- * - Usa Redis
- * - Retorna el mock si useMock = true
- * - (Descomentarlo en el futuro para llamar a fetchEtsyReceiptsFromAPI)
- */
-async function fetchEtsyReceipts(shopId, params, token, useMock = false) {
+// ======================================================================
+// 2. getLastSyncTime: Lee la última sincronización en Supabase
+// ======================================================================
+async function getLastSyncTime() {
   try {
-    // 1) Revisar caché
-    const cachedData = await redisClient.get(CACHE_KEY);
-    if (cachedData) {
-      console.log("🔹 Retornando datos de Redis Cache");
-      return JSON.parse(cachedData);
+    const { data, error } = await supabase
+      .from("MarketplaceAccounts")
+      .select("last_sync")
+      .eq("marketplace", "Etsy")
+      .single();
+
+    if (error) {
+      console.error("❌ Error obteniendo last_sync:", error);
+      return null;
     }
-
-    // 2) No hay caché => mock o API real
-    let data;
-    if (useMock) {
-      console.log("⚠ Usando MOCK data");
-      data = mockReceiptsData;
-    } else {
-      // data = await fetchEtsyReceiptsFromAPI(shopId, params, token);
-      // Por ahora, devuelves mock si no tienes acceso
-      data = mockReceiptsData;
-    }
-
-    // 3) Guardar en Redis
-    await redisClient.set(CACHE_KEY, JSON.stringify(data), { EX: CACHE_TTL });
-
-    return data;
-  } catch (error) {
-    console.error("Error in fetchEtsyReceipts:", error);
-    throw error;
+    return data?.last_sync;
+  } catch (err) {
+    console.error("❌ Error general en getLastSyncTime:", err);
+    return null;
   }
 }
 
-/**
- * getEtsyData
- * Función de alto nivel que llama a fetchEtsyReceipts con o sin mock
- */
-async function getEtsyData(shopId, params, token, useMock = false) {
-  return await fetchEtsyReceipts(shopId, params, token, useMock);
+// ======================================================================
+// 3. syncOrdersWithEtsy: Sincroniza pedidos (mock o API real) y guarda en Supabase
+// ======================================================================
+async function syncOrdersWithEtsy(useMock = false) {
+  try {
+    let newOrders = [];
+
+    if (useMock) {
+      console.log("⚠ Usando MOCK data (no se llama a la API real)");
+      newOrders = mockReceiptsData.results;
+    } else {
+      const lastSyncTime = await getLastSyncTime();
+      const etsyApiUrl = "https://api.etsy.com/v3/application/receipts";
+
+      const params = lastSyncTime
+        ? { min_created_timestamp: Math.floor(new Date(lastSyncTime).getTime() / 1000) }
+        : {};
+
+      const response = await axios.get(etsyApiUrl, {
+        headers: { Authorization: `Bearer ${process.env.ETSY_API_KEY}` },
+        params,
+      });
+      newOrders = response.data.results;
+    }
+
+    if (!Array.isArray(newOrders) || newOrders.length === 0) {
+      console.log("✅ No hay pedidos nuevos.");
+      return;
+    }
+
+    // Insertar pedidos en Supabase
+    const { data, error } = await supabase.from("orders").insert(
+      newOrders.map((order) => ({
+        marketplace_order_id: order.receipt_id,
+        store_id: "d3269a06-1bff-4b3c-8754-e5f803101757", // Ajusta con tu store_id real
+        order_date: new Date(order.create_timestamp * 1000).toISOString(),
+        status: order.status,
+        total_amount: order.total_price?.amount / order.total_price?.divisor || 0,
+        payment_method: order.payment_method,
+        buyer_info: JSON.stringify({
+          name: order.name,
+          email: order.buyer_email,
+          address: order.formatted_address,
+        }),
+        currency_code: order.total_price?.currency_code || "EUR",
+        is_shipped: !!order.is_shipped,
+        updated_at: new Date(order.update_timestamp * 1000).toISOString(),
+      }))
+    );
+
+    if (error) {
+      console.error("❌ Error insertando pedidos en Supabase:", error);
+      console.error("🔍 Error Message:", error.message || "No message");
+      console.error("📌 Error Details:", error.details || "No details");
+      console.error("💡 Error Hint:", error.hint || "No hint");
+    }
+
+    console.log(`✅ Insertados ${newOrders.length} pedidos en Supabase`);
+
+    // Cachear en Redis
+    await redisClient.set(CACHE_KEY, JSON.stringify(newOrders), { EX: CACHE_TTL });
+    console.log("✅ Pedidos cacheados en Redis");
+
+    // Actualizar la última sincronización
+    await supabase
+      .from("MarketplaceAccounts")
+      .update({ last_sync: new Date().toISOString() })
+      .eq("marketplace", "Etsy");
+  } catch (error) {
+    console.error("❌ Error en syncOrdersWithEtsy:", error);
+  }
 }
 
-/**
- * parseReceiptsData
- * (Opcional) Calcula totalSales, totalOrders, markers...
- */
-function parseReceiptsData(receiptsData) {
-  const { count = 0, results = [] } = receiptsData;
-  let totalSales = 0;
-  let totalOrders = count;
-  const countryMap = new Map();
+// ======================================================================
+// 4. getEtsyData: Obtiene pedidos desde Supabase (o Redis si está cacheado)
+//    Devuelve { rawData, stats } para que tu etsyRoutes.js no cambie
+// ======================================================================
+async function getEtsyData(shopId, params, token, useMock = false) {
+  try {
+    // 1) Si useMock es true, devolvemos directamente el mock (con su count/results)
+    if (useMock) {
+      console.log("⚠ Devolviendo mockReceiptsData tal cual.");
+      return {
+        rawData: mockReceiptsData, // { count, results: [...] }
+        stats: parseStatsFromReceipts(mockReceiptsData.results),
+      };
+    }
 
-  const countryCoords = {
-    US: [37.09, -95.71],
-    DE: [51.16, 10.45],
-    ES: [40.42, -3.7],
-    MX: [23.63, -102.55],
-  };
+    // 2) Revisar caché en Redis
+    const cachedData = await redisClient.get(CACHE_KEY);
+    if (cachedData) {
+      console.log("✅ Datos obtenidos desde Redis");
+      const ordersArr = JSON.parse(cachedData);
+      return {
+        rawData: convertOrdersToLegacy(ordersArr),
+        stats: parseStatsFromReceipts(ordersArr),
+      };
+    }
+
+    // 3) Si no hay caché => obtener desde Supabase
+    const { data: orders, error } = await supabase
+      .from("Orders")
+      .select("*")
+      .order("order_date", { ascending: false });
+
+    if (error) {
+      console.error("❌ Error obteniendo pedidos desde Supabase:", error);
+      return {
+        rawData: { count: 0, results: [] },
+        stats: { totalSales: 0, totalOrders: 0, markers: [] },
+      };
+    }
+
+    // 4) Guardar en Redis
+    await redisClient.set(CACHE_KEY, JSON.stringify(orders), { EX: CACHE_TTL });
+
+    // 5) Convertir a la forma "legacy" con count/results
+    return {
+      rawData: convertOrdersToLegacy(orders),
+      stats: parseStatsFromReceipts(orders),
+    };
+  } catch (error) {
+    console.error("❌ Error en getEtsyData:", error);
+    return {
+      rawData: { count: 0, results: [] },
+      stats: { totalSales: 0, totalOrders: 0, markers: [] },
+    };
+  }
+}
+
+// ======================================================================
+// 5. aggregateSalesByDay: Recibe un objeto con rawData { count, results }
+//    en tu etsyRoutes.js, le pasas data.rawData
+// ======================================================================
+function aggregateSalesByDay(rawData) {
+  const results = rawData?.results || [];
+  const salesMap = new Map();
 
   results.forEach((receipt) => {
-    let sumReceipt = 0;
-    if (Array.isArray(receipt.transactions)) {
-      receipt.transactions.forEach((trans) => {
-        const { amount = 0, divisor = 1 } = trans.price || {};
-        sumReceipt += amount / divisor;
-      });
-    }
-    totalSales += sumReceipt;
+    // Convierto create_timestamp en YYYY-MM-DD
+    const ts = receipt.create_timestamp || 0;
+    const dateObj = new Date(ts * 1000);
+    const yyyy = dateObj.getFullYear();
+    const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const dd = String(dateObj.getDate()).padStart(2, "0");
+    const dateStr = `${yyyy}-${mm}-${dd}`;
 
-    const iso = receipt.country_iso || "XX";
-    const prev = countryMap.get(iso) || { totalAmount: 0, ordersCount: 0 };
-    countryMap.set(iso, {
-      totalAmount: prev.totalAmount + sumReceipt,
-      ordersCount: prev.ordersCount + 1,
-    });
+    // Calculo la venta total de este recibo
+    const amount = receipt.total_price?.amount || 0;
+    const divisor = receipt.total_price?.divisor || 100;
+    const total = amount / divisor;
+
+    const prev = salesMap.get(dateStr) || 0;
+    salesMap.set(dateStr, prev + total);
   });
 
-  // markers
-  const markers = [];
-  countryMap.forEach((val, iso) => {
-    const coords = countryCoords[iso] || [0, 0];
-    markers.push({
-      latLng: coords,
-      name: `${iso} - Orders: ${val.ordersCount}, Sales: ${val.totalAmount}`,
-    });
-  });
-
-  return { totalSales, totalOrders, markers };
+  return Array.from(salesMap.entries())
+    .map(([date, total]) => ({ date, total }))
+    .sort((a, b) => (a.date > b.date ? 1 : -1));
 }
 
-// Exporta todo lo que uses en la ruta
-module.exports = {
-  getEtsyData,
-  parseReceiptsData,
-  // fetchEtsyReceiptsFromAPI, // si quieres
-  // fetchEtsyReceipts,        // si quieres
-};
+// ======================================================================
+// 6. Funciones internas para "stats" y conversión a legacy
+// ======================================================================
+
+// parseStatsFromReceipts: calcula totalSales, totalOrders y markers vacíos
+function parseStatsFromReceipts(receipts) {
+  let totalSales = 0;
+  let totalOrders = receipts.length;
+
+  receipts.forEach((r) => {
+    // sumo total_price
+    const price = r.total_price?.amount || r.total_amount * 100; // fallback
+    const div = r.total_price?.divisor || 100;
+    totalSales += price / div;
+  });
+
+  // Podrías agregar country_iso => markers si quieres
+  return {
+    totalSales,
+    totalOrders,
+    markers: [],
+  };
+}
+
+// convertOrdersToLegacy: produce { count, results: [...] } con el shape de un "receipt"
+function convertOrdersToLegacy(ordersArr) {
+  // Creamos un array "results" con shape similar a mock
+  const results = ordersArr.map((o) => {
+    const createTs = new Date(o.order_date).getTime() / 1000; // supabase => epoch
+    const updateTs = new Date(o.updated_at).getTime() / 1000;
+
+    return {
+      receipt_id: o.marketplace_order_id,
+      name: JSON.parse(o.buyer_info)?.name || "",
+      buyer_email: JSON.parse(o.buyer_info)?.email || "",
+      create_timestamp: createTs,
+      update_timestamp: updateTs,
+      total_price: {
+        amount: Math.round(o.total_amount * 100),
+        divisor: 100,
+        currency_code: o.currency_code || "USD",
+      },
+      payment_method: o.payment_method || "credit_card",
+      formatted_address: JSON.parse(o.buyer_info)?.address || "",
+      status: o.status,
+      is_shipped: o.is_shipped,
+      // No tenemos transacciones en Supabase, lo dejamos vacío
+      transactions: [],
+    };
+  });
+
+  return {
+    count: results.length,
+    results,
+  };
+}
+
+// ======================================================================
+// 7. Exportar todo
+// ======================================================================
+export { mockReceiptsData, getLastSyncTime, syncOrdersWithEtsy, getEtsyData, aggregateSalesByDay };
