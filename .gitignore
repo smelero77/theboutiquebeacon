@@ -4,6 +4,8 @@
 /node_modules
 .DS_Store
 
+echo "backend/.env" >> .gitignore
+
 # testing
 /coverage
 
