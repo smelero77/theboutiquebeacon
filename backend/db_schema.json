@@ -46,10 +46,31 @@
         "columns": {
           "id": { "type": "uuid", "constraints": ["primary_key", "unique"], "description": "Identificador único del pedido." },
           "store_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Tienda", "description": "Referencia a la tienda donde se realizó el pedido." },
-          "created_at": { "type": "timestamp", "alias": "Fecha de Creación", "description": "Fecha en que se generó el pedido." }
+          "user_id": { "type": "uuid", "constraints": ["foreign_key"], "alias": "ID Usuario", "description": "Referencia al usuario que realizó el pedido." },
+          "total_amount": { "type": "decimal(10,2)", "description": "Monto total del pedido." },
+          "status": { "type": "varchar", "description": "Estado del pedido." },
+          "created_at": { "type": "timestamp", "alias": "Fecha de Creación", "description": "Fecha en que se generó el pedido." },
+          "updated_at": { "type": "timestamp", "alias": "Última Actualización", "description": "Última actualización del pedido." }
         },
         "relations": {
-          "stores": { "foreign_column": "id", "referenced_column": "store_id", "relation_description": "Cada pedido está asociado a una tienda específica." }
+          "stores": { "foreign_column": "id", "referenced_column": "store_id", "relation_description": "Cada pedido está asociado a una tienda específica." },
+          "users": { "foreign_column": "id", "referenced_column": "user_id", "relation_description": "Cada pedido está asociado a un usuario." }
+        },
+        "foreignKeys": {
+          "orders_user_id_fkey": {
+            "columns": ["user_id"],
+            "referencedTable": "users",
+            "referencedColumns": ["id"],
+            "onDelete": "CASCADE"
+          }
+        },
+        "indexes": {
+          "orders_user_id_idx": {
+            "columns": ["user_id"]
+          },
+          "orders_created_at_idx": {
+            "columns": ["created_at"]
+          }
         }
       },
       "reviews": {

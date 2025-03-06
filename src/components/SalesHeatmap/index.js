@@ -1,149 +1,118 @@
-import React from "react";
+import React, { useMemo } from "react";
 import PropTypes from "prop-types";
-import { Card, Spin } from "antd";
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-
-const formatEuro = (value) => `€${Number(value).toFixed(2)}`;
+import { Card, Spin, Empty } from "antd";
+import { Heatmap } from "@ant-design/plots";
+import dayjs from "dayjs";
 
 const HOURS = ["4am", "8am", "noon", "4pm", "8pm", "12am"];
-const DAYS_MAP = {
-  0: "S",
-  1: "M",
-  2: "T",
-  3: "W",
-  4: "T",
-  5: "F",
-  6: "S",
-};
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    return (
-      <div
-        style={{
-          backgroundColor: "transparent",
-          padding: "5px",
-          fontSize: "12px",
-          color: "#666",
-        }}
-      >
-        <div>{`${dayNames[data.day]} ${data.hour}:00`}</div>
-        <div style={{ color: "#25CF5E" }}>{`€${data.sales.toFixed(2)}`}</div>
-      </div>
-    );
-  }
-  return null;
-};
+const SalesHeatmap = ({ orders = [], loading = false }) => {
+  // Generar los datos base del heatmap
+  const data = useMemo(() => {
+    if (!orders || !Array.isArray(orders)) return [];
 
-CustomTooltip.propTypes = {
-  active: PropTypes.bool,
-  payload: PropTypes.arrayOf(
-    PropTypes.shape({
-      payload: PropTypes.shape({
-        day: PropTypes.number,
-        hour: PropTypes.number,
-        sales: PropTypes.number,
+    const heatmapData = [];
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        heatmapData.push({
+          day,
+          hour,
+          sales: 0,
+          orders: 0,
+        });
+      }
+    }
+
+    // Procesar órdenes y sumar ventas
+    orders.forEach((order) => {
+      const orderDate = order.order_date || order.created_at;
+      if (!orderDate) return;
+
+      const date = dayjs(orderDate);
+      const day = date.day();
+      const hour = date.hour();
+      const amount = Number(order.total_amount) || 0;
+
+      const point = heatmapData.find((p) => p.day === day && p.hour === hour);
+      if (point) {
+        point.sales += amount;
+        point.orders += 1;
+      }
+    });
+
+    return heatmapData;
+  }, [orders]);
+
+  // Configuración del heatmap con Ant Design Plots
+  const config = {
+    data,
+    xField: "hour",
+    yField: "day",
+    colorField: "sales",
+    shape: "square",
+    sizeRatio: 1, // Mantener todos los cuadrados iguales
+    color: ["#e0e0e0", "#7eadfc", "#fd8b6f", "#aa3523"], // De gris claro a rojo
+    xAxis: {
+      title: null,
+      label: {
+        formatter: (v) => HOURS[Number(v) / 4], // Mostrar horas en formato texto
+      },
+    },
+    yAxis: {
+      title: null,
+      label: {
+        formatter: (v) => DAYS_SHORT[Number(v)], // Mostrar días en formato corto
+      },
+    },
+    tooltip: {
+      formatter: (datum) => ({
+        name: `${DAYS[datum.day]} ${datum.hour}:00`,
+        value: `Sales: €${datum.sales.toFixed(2)}, Orders: ${datum.orders}`,
       }),
-    })
-  ),
-};
-
-CustomTooltip.defaultProps = {
-  active: false,
-  payload: [],
-};
-
-const SalesHeatmap = ({ data, loading }) => {
-  const getColor = (sales) => {
-    const maxSales = Math.max(...data.map((item) => item.sales));
-    const intensity = sales / maxSales;
-    return `rgba(37, 207, 94, ${Math.max(0.1, intensity)})`;
+    },
   };
 
   return (
-    <Card title="Mapa de Calor de Ventas" bordered={false}>
+    <Card
+      title="Sales Heatmap"
+      variant="outlined"
+      style={{
+        fontFamily: "Montserrat, sans-serif",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        borderRadius: "8px",
+      }}
+      headStyle={{
+        fontWeight: "500",
+        fontSize: "16px",
+        borderBottom: "1px solid rgba(0,0,0,0.05)",
+      }}
+    >
       {loading ? (
         <Spin />
-      ) : data && data.length > 0 ? (
-        <div style={{ width: "100%", height: "300px", marginTop: "20px" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              margin={{
-                top: 30,
-                right: 30,
-                bottom: 40,
-                left: 40,
-              }}
-            >
-              <XAxis
-                type="number"
-                dataKey="hour"
-                domain={[0, 23]}
-                ticks={[4, 8, 12, 16, 20, 24]}
-                tickFormatter={(value, index) => HOURS[index]}
-                orientation="top"
-                axisLine={false}
-                tickLine={false}
-                style={{
-                  fontSize: "12px",
-                  fontFamily: "Arial",
-                  fill: "#666",
-                }}
-              />
-              <YAxis
-                type="number"
-                dataKey="day"
-                domain={[0, 6]}
-                ticks={[0, 1, 2, 3, 4, 5, 6]}
-                tickFormatter={(value) => DAYS_MAP[value]}
-                reversed
-                axisLine={false}
-                tickLine={false}
-                style={{
-                  fontSize: "12px",
-                  fontFamily: "Arial",
-                  fill: "#666",
-                }}
-                padding={{ top: 20, bottom: 20 }}
-              />
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={false}
-                wrapperStyle={{ zIndex: 100 }}
-                position={{ y: -10 }}
-              />
-              <Scatter data={data} shape="circle" fillOpacity={1}>
-                {data.map((entry, index) => (
-                  <circle key={`cell-${index}`} r={4} fill={getColor(entry.sales)} />
-                ))}
-              </Scatter>
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
+      ) : data.length === 0 ? (
+        <Empty description="No data available" />
       ) : (
-        <div style={{ textAlign: "center", padding: "20px" }}>
-          No hay datos disponibles para el rango de fechas seleccionado
-        </div>
+        <Heatmap {...config} />
       )}
     </Card>
   );
 };
 
 SalesHeatmap.propTypes = {
-  data: PropTypes.arrayOf(
+  orders: PropTypes.arrayOf(
     PropTypes.shape({
-      day: PropTypes.number.isRequired,
-      hour: PropTypes.number.isRequired,
-      sales: PropTypes.number.isRequired,
+      order_date: PropTypes.string,
+      created_at: PropTypes.string,
+      total_amount: PropTypes.number,
     })
   ),
   loading: PropTypes.bool,
 };
 
 SalesHeatmap.defaultProps = {
-  data: [],
+  orders: [],
   loading: false,
 };
 

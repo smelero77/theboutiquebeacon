@@ -1,44 +1,102 @@
 import React from "react";
-import { Row, Col, Card, Statistic } from "antd";
+import { Row, Col, Card } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
+import PropTypes from "prop-types";
+import "./styles.css";
 
-function StatisticsCards() {
+const StatCard = ({ title, value, percentage, prefix = "€" }) => {
+  const formatPercentage = (value) => `${value}%`;
+
+  return (
+    <Card className="statistics-card">
+      <div className="card-content">
+        <div className="card-header">
+          <h3>{title}</h3>
+          <span className={`percentage ${percentage >= 0 ? "positive" : "negative"}`}>
+            {percentage >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+            {formatPercentage(Math.abs(percentage))}
+          </span>
+        </div>
+        <div className="card-value">
+          {prefix}
+          {value}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+StatCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  percentage: PropTypes.number.isRequired,
+  prefix: PropTypes.string,
+};
+
+StatCard.defaultProps = {
+  prefix: "€",
+};
+
+function StatisticsCards({ data = {} }) {
+  const {
+    netSales = { value: 0, percentage: 0 },
+    dailyAverage = { value: 0, percentage: 0 },
+    orders = { value: 0, percentage: 0 },
+  } = data;
+
+  const formatEuro = (value) => `${value.toFixed(2)} €`;
+
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} lg={8}>
-        <Card>
-          <Statistic
-            title="Ventas Totales"
-            value={11.28}
-            precision={2}
-            valueStyle={{ color: "#3f8600" }}
-            prefix={<ArrowUpOutlined />}
-            suffix="%"
-          />
-        </Card>
+        <StatCard
+          title="Net Sales"
+          value={formatEuro(netSales.value)}
+          percentage={netSales.percentage}
+        />
       </Col>
       <Col xs={24} sm={12} lg={8}>
-        <Card>
-          <Statistic
-            title="Pedidos"
-            value={93}
-            valueStyle={{ color: "#cf1322" }}
-            prefix={<ArrowDownOutlined />}
-          />
-        </Card>
+        <StatCard
+          title="Daily Average"
+          value={formatEuro(dailyAverage.value)}
+          percentage={dailyAverage.percentage}
+        />
       </Col>
       <Col xs={24} sm={12} lg={8}>
-        <Card>
-          <Statistic
-            title="Clientes Activos"
-            value={1128}
-            valueStyle={{ color: "#3f8600" }}
-            prefix={<ArrowUpOutlined />}
-          />
-        </Card>
+        <StatCard
+          title="Orders"
+          value={orders.value.toString()}
+          percentage={orders.percentage}
+          prefix=""
+        />
       </Col>
     </Row>
   );
 }
+
+StatisticsCards.propTypes = {
+  data: PropTypes.shape({
+    netSales: PropTypes.shape({
+      value: PropTypes.number,
+      percentage: PropTypes.number,
+    }),
+    dailyAverage: PropTypes.shape({
+      value: PropTypes.number,
+      percentage: PropTypes.number,
+    }),
+    orders: PropTypes.shape({
+      value: PropTypes.number,
+      percentage: PropTypes.number,
+    }),
+  }),
+};
+
+StatisticsCards.defaultProps = {
+  data: {
+    netSales: { value: 0, percentage: 0 },
+    dailyAverage: { value: 0, percentage: 0 },
+    orders: { value: 0, percentage: 0 },
+  },
+};
 
 export default StatisticsCards;

@@ -14,13 +14,27 @@ import { fileURLToPath } from "url";
 import redisClient from "./redisClient.js";
 import { syncOrdersWithEtsy } from "./services/etsyService.js";
 
+// Importamos las rutas
+import etsyRoutes from "./routes/etsyRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+
+// Configuración de CORS
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://tu-dominio-produccion.com' 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 // Configuración de la app Express
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Configuración de OpenAI
@@ -39,6 +53,21 @@ pool.on("error", (err) => {
   console.error("❌ Error en la conexión a PostgreSQL:", err.message);
 });
 
+// Middleware para logging de requests
+app.use((req, res, next) => {
+  console.log(`📝 ${req.method} ${req.path}`);
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`✅ ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
+// Registramos las rutas
+app.use("/api", etsyRoutes);
+app.use("/api", orderRoutes);
+
 // ✅ PRUEBA de conexión a PostgreSQL
 app.get("/test-db", async (req, res) => {
   try {
@@ -50,10 +79,6 @@ app.get("/test-db", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// Importamos las rutas Etsy
-import etsyRoutes from "./routes/etsyRoutes.js";
-app.use("/api", etsyRoutes);
 
 // Leer el esquema de la base de datos
 const dbSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "db_schema.json"), "utf8"));
@@ -72,7 +97,7 @@ app.post("/query", async (req, res) => {
     `;
 
     const response = await openai.createChatCompletion({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [{ role: "system", content: prompt }],
     });
 
@@ -110,6 +135,34 @@ async function startSync() {
 
 // Llamamos a la sincronización al iniciar el servidor
 startSync();
+
+// Middleware de manejo de errores global
+app.use((err, req, res, next) => {
+  console.error("❌ Error no manejado:", err);
+  console.error("Stack:", err.stack);
+  
+  // Si el error viene de Supabase
+  if (err.message?.includes("supabase")) {
+    return res.status(500).json({
+      error: "Error de base de datos",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  }
+  
+  // Si el error viene de Redis
+  if (err.message?.includes("redis")) {
+    return res.status(500).json({
+      error: "Error de caché",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  }
+  
+  // Error genérico
+  res.status(500).json({
+    error: "Error interno del servidor",
+    details: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
 
 // Iniciar servidor
 const PORT = process.env.API_PORT || 5000;

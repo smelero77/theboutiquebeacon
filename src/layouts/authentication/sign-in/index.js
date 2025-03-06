@@ -3,6 +3,7 @@ import { Form, Input, Button, Typography, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../../supabaseClient.js";
+import tbbLogo from "../../../assets/images/tbb.png"; // Importar el logotipo
 
 const { Title } = Typography;
 
@@ -27,22 +28,30 @@ function SignIn() {
   };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Title level={2} style={{ textAlign: "center", marginBottom: "32px" }}>
+    <div style={{ padding: "24px", textAlign: "center" }}>
+      {/* Logo */}
+      <img
+        src={tbbLogo}
+        alt="Logo"
+        style={{
+          width: "150px",
+          marginBottom: "24px",
+          display: "block",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      />
+
+      <Title level={2} style={{ marginBottom: "32px" }}>
         Iniciar Sesión
       </Title>
+
       <Form form={form} name="sign-in" onFinish={onFinish} layout="vertical">
         <Form.Item
           name="email"
           rules={[
-            {
-              required: true,
-              message: "Por favor ingrese su correo electrónico",
-            },
-            {
-              type: "email",
-              message: "Por favor ingrese un correo electrónico válido",
-            },
+            { required: true, message: "Por favor ingrese su correo electrónico" },
+            { type: "email", message: "Por favor ingrese un correo electrónico válido" },
           ]}
         >
           <Input prefix={<UserOutlined />} placeholder="Correo electrónico" size="large" />
@@ -50,12 +59,7 @@ function SignIn() {
 
         <Form.Item
           name="password"
-          rules={[
-            {
-              required: true,
-              message: "Por favor ingrese su contraseña",
-            },
-          ]}
+          rules={[{ required: true, message: "Por favor ingrese su contraseña" }]}
         >
           <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" size="large" />
         </Form.Item>

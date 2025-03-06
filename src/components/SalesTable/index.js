@@ -1,45 +1,56 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Card, Table } from "antd";
+import { Card, Table, Empty } from "antd";
 import dayjs from "dayjs";
 
-function SalesTable({ data }) {
+function SalesTable({ data = [] }) {
   const columns = [
     {
       title: "ID",
       dataIndex: "receipt_id",
       key: "receipt_id",
+      render: (id) => id || "-",
     },
     {
       title: "Fecha",
       dataIndex: "create_timestamp",
       key: "create_timestamp",
-      render: (timestamp) => dayjs.unix(timestamp).format("DD/MM/YYYY HH:mm"),
+      render: (timestamp) => (timestamp ? dayjs.unix(timestamp).format("DD/MM/YYYY HH:mm") : "-"),
     },
     {
       title: "Vendedor",
       dataIndex: "seller_email",
       key: "seller_email",
+      render: (email) => email || "-",
     },
     {
       title: "Comprador",
       dataIndex: "buyer_email",
       key: "buyer_email",
+      render: (email) => email || "-",
     },
     {
       title: "Total",
       dataIndex: "total_price",
       key: "total_price",
-      render: (price) => `$${price.toFixed(2)}`,
+      render: (price) => `$${(Number(price) || 0).toFixed(2)}`,
     },
   ];
+
+  if (!data || data.length === 0) {
+    return (
+      <Card title="Ventas Recientes">
+        <Empty description="No hay ventas recientes" />
+      </Card>
+    );
+  }
 
   return (
     <Card title="Ventas Recientes">
       <Table
         columns={columns}
         dataSource={data}
-        rowKey="receipt_id"
+        rowKey={(record) => record.receipt_id || Math.random().toString()}
         pagination={{
           pageSize: 5,
           showSizeChanger: true,
@@ -53,13 +64,17 @@ function SalesTable({ data }) {
 SalesTable.propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
-      receipt_id: PropTypes.number.isRequired,
-      create_timestamp: PropTypes.number.isRequired,
-      seller_email: PropTypes.string.isRequired,
-      buyer_email: PropTypes.string.isRequired,
-      total_price: PropTypes.number.isRequired,
+      receipt_id: PropTypes.number,
+      create_timestamp: PropTypes.number,
+      seller_email: PropTypes.string,
+      buyer_email: PropTypes.string,
+      total_price: PropTypes.number,
     })
-  ).isRequired,
+  ),
+};
+
+SalesTable.defaultProps = {
+  data: [],
 };
 
 export default SalesTable;
